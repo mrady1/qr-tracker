@@ -2,8 +2,8 @@ name: Collect Traffic Stats
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Daily at 6 AM UTC
-  workflow_dispatch: {}   # Allow manual trigger
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -14,84 +14,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch GitHub Traffic Data
+      - name: Fetch and merge traffic data
         env:
           GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
         run: |
           mkdir -p data
+          gh api repos/${{ github.repository }}/traffic/views > data/traffic_latest.json
 
-          # Fetch views (includes /conor-brennan path)
-          views=$(gh api repos/${{ github.repository }}/traffic/views)
-          clones=$(gh api repos/${{ github.repository }}/traffic/clones 2>/dev/null || echo '{}')
-
-          # Build combined JSON
-          echo "$views" | jq --arg updated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '. + {updated: $updated}' > data/traffic_latest.json
-
-          # Merge with historical data
-          if [ -f data/traffic.json ]; then
-            # Merge: keep historical entries, add/update with new data
-            python3 - <<'PYEOF'
+          python3 - <<'PYEOF'
           import json, os
-          from datetime import datetime
+          from datetime import datetime, timezone
 
-          latest_path = 'data/traffic_latest.json'
-          hist_path = 'data/traffic.json'
-
-          with open(latest_path) as f:
+          with open('data/traffic_latest.json') as f:
               latest = json.load(f)
-          with open(hist_path) as f:
-              hist = json.load(f)
 
-          # Merge views
-          existing_dates = {v['timestamp']: v for v in hist.get('views', [])}
+          hist_path = 'data/traffic.json'
+          if os.path.exists(hist_path):
+              with open(hist_path) as f:
+                  hist = json.load(f)
+          else:
+              hist = {'views': []}
+
+          # Merge views by timestamp (latest wins for overlapping dates)
+          by_date = {v['timestamp']: v for v in hist.get('views', [])}
           for v in latest.get('views', []):
-              existing_dates[v['timestamp']] = v
-          merged_views = sorted(existing_dates.values(), key=lambda x: x['timestamp'])
-
-          # Merge uniques
-          existing_uniq = {u['timestamp']: u for u in hist.get('uniques', [])}
-          for u in latest.get('uniques', []):
-              existing_uniq[u['timestamp']] = u
-          merged_uniques = sorted(existing_uniq.values(), key=lambda x: x['timestamp'])
+              by_date[v['timestamp']] = v
+          merged = sorted(by_date.values(), key=lambda x: x['timestamp'])
 
           result = {
-              'count': sum(v['count'] for v in merged_views),
-              'uniques': sum(u['uniques'] for u in merged_uniques),
-              'views': merged_views,
-              'uniques_detail': merged_uniques,
-              'updated': latest.get('updated', datetime.utcnow().isoformat() + 'Z')
-          }
-
-          # Remap for dashboard compatibility
-          result['uniques_list'] = result.pop('uniques_detail')
-          # Keep 'uniques' as the list for the dashboard
-          final = {
-              'count': result['count'],
-              'views': result['views'],
-              'uniques': result['uniques_list'],
-              'updated': result['updated']
+              'count': sum(v['count'] for v in merged),
+              'uniques': sum(v.get('uniques', 0) for v in merged),
+              'views': merged,
+              'updated': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
           }
 
           with open(hist_path, 'w') as f:
-              json.dump(final, f, indent=2)
-          PYEOF
-          else
-            # First run — just use latest
-            python3 -c "
-          import json
-          with open('data/traffic_latest.json') as f:
-              d = json.load(f)
-          result = {
-              'count': d.get('count', 0),
-              'views': d.get('views', []),
-              'uniques': d.get('uniques', []),
-              'updated': d.get('updated', '')
-          }
-          with open('data/traffic.json', 'w') as f:
               json.dump(result, f, indent=2)
-          "
-          fi
+          PYEOF
 
           rm -f data/traffic_latest.json
 

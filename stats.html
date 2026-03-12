@@ -60,13 +60,12 @@
         const data = await resp.json();
 
         const views = data.views || [];
-        const uniques = data.uniques || [];
         const totalViews = views.reduce((s, d) => s + d.count, 0);
-        const totalUniques = uniques.reduce((s, d) => s + d.uniques, 0);
+        const totalUniques = views.reduce((s, d) => s + (d.uniques || 0), 0);
 
         document.getElementById('totalViews').textContent = totalViews.toLocaleString();
         document.getElementById('totalUniques').textContent = totalUniques.toLocaleString();
-        document.getElementById('daysTracked').textContent = views.length;
+        document.getElementById('daysTracked').textContent = views.filter(v => v.count > 0).length || views.length;
 
         if (data.updated) {
           document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.updated).toLocaleString();
@@ -74,10 +73,10 @@
 
         const maxCount = Math.max(...views.map(d => d.count), 1);
         let html = '<table><thead><tr><th>Date</th><th>Scans</th><th>Unique</th><th class="bar-cell">Distribution</th></tr></thead><tbody>';
-        const merged = views.map((v, i) => ({
+        const merged = views.map(v => ({
           date: v.timestamp.split('T')[0],
           count: v.count,
-          uniques: uniques[i] ? uniques[i].uniques : 0
+          uniques: v.uniques || 0
         })).reverse();
 
         for (const row of merged) {
