@@ -8,9 +8,26 @@
   <p>Redirecting to <a href="https://www.cbre.com/people/conor-brennan#properties">Conor Brennan Listings</a>...</p>
   <script>
     var DEST = "https://www.cbre.com/people/conor-brennan#properties";
-    fetch("https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/up", {mode:"cors"})
-      .finally(function() { window.location.replace(DEST); });
-    setTimeout(function() { window.location.replace(DEST); }, 2000);
+    var counted = false;
+
+    function go() {
+      if (!counted) { counted = true; window.location.replace(DEST); }
+    }
+
+    // Count the scan using keepalive so the request survives navigation
+    try {
+      fetch("https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/up", {
+        mode: "cors",
+        keepalive: true
+      });
+    } catch(e) {}
+
+    // Also fire a backup using an image beacon
+    var img = new Image();
+    img.src = "https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/up?_=" + Date.now();
+
+    // Redirect after a short delay to ensure the request is sent
+    setTimeout(go, 800);
   </script>
 </body>
 </html>
