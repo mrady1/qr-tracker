@@ -3,20 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Scan Tracker</title>
+  <title>QR Scan Tracker — Conor Brennan</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f5f5; color: #1a1a1a; }
-    .header { background: #003F2D; color: white; padding: 32px 24px; }
-    .header h1 { font-size: 22px; font-weight: 600; }
-    .header p { font-size: 14px; opacity: 0.8; margin-top: 4px; }
-    .container { max-width: 600px; margin: 0 auto; padding: 24px; }
-    .card { background: white; border-radius: 8px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
-    .scan-label { font-size: 16px; color: #666; margin-bottom: 8px; }
-    .scan-count { font-size: 72px; font-weight: 700; color: #003F2D; line-height: 1; }
-    .note { font-size: 13px; color: #999; margin-top: 24px; line-height: 1.5; }
-    .refresh-btn { background: #003F2D; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 20px; }
-    .refresh-btn:hover { background: #005a41; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0f2f5; color: #1a1a1a; min-height: 100vh; }
+
+    .header {
+      background: linear-gradient(135deg, #003F2D 0%, #005940 100%);
+      color: white;
+      padding: 40px 24px 48px;
+      text-align: center;
+    }
+    .header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.3px; }
+    .header p { font-size: 14px; opacity: 0.75; margin-top: 6px; }
+
+    .container { max-width: 480px; margin: -28px auto 0; padding: 0 16px 40px; }
+
+    .main-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 32px 36px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      text-align: center;
+      position: relative;
+    }
+
+    .icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #003F2D, #00795C);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .icon svg { width: 28px; height: 28px; fill: white; }
+
+    .scan-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #8a9199;
+      margin-bottom: 8px;
+    }
+    .scan-count {
+      font-size: 80px;
+      font-weight: 700;
+      color: #003F2D;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .scan-sub {
+      font-size: 14px;
+      color: #a0a8b0;
+      margin-bottom: 28px;
+    }
+
+    .divider {
+      height: 1px;
+      background: #eef0f2;
+      margin: 0 -8px 20px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 14px;
+    }
+    .detail-label { color: #8a9199; }
+    .detail-value { font-weight: 600; color: #1a1a1a; }
+
+    .refresh-btn {
+      background: linear-gradient(135deg, #003F2D, #005940);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 24px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 2px 8px rgba(0,63,45,0.25);
+    }
+    .refresh-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,63,45,0.35); }
+    .refresh-btn:active { transform: translateY(0); }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #b0b8c0;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
@@ -25,22 +105,51 @@
     <p>Conor Brennan — Postcard Campaign</p>
   </div>
   <div class="container">
-    <div class="card">
+    <div class="main-card">
+      <div class="icon">
+        <svg viewBox="0 0 24 24"><path d="M3 11h2V9H3v2zm0 4h2v-2H3v2zm0-8h2V5H3v2zm4 8h14v-2H7v2zm0-4h14v-2H7v2zm0-6v2h14V5H7z"/></svg>
+      </div>
       <div class="scan-label">Total Scans</div>
-      <div class="scan-count" id="count">...</div>
-      <button class="refresh-btn" onclick="loadCount()">Refresh</button>
-      <p class="note">Count updates in real time each time someone scans the QR code on the postcard.</p>
+      <div class="scan-count" id="count">—</div>
+      <div class="scan-sub" id="status">Loading...</div>
+      <div class="divider"></div>
+      <div class="detail-row">
+        <span class="detail-label">Campaign</span>
+        <span class="detail-value">Postcard QR Code</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Destination</span>
+        <span class="detail-value">Conor Brennan Listings</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Last checked</span>
+        <span class="detail-value" id="lastChecked">—</span>
+      </div>
+      <button class="refresh-btn" onclick="loadCount()">Refresh Count</button>
+    </div>
+    <div class="footer">
+      Counts update in real time with each QR code scan.<br>
+      Viewing this page does not affect the count.
     </div>
   </div>
   <script>
     function loadCount() {
-      fetch("https://api.counterapi.dev/v1/mrady1-qr/conor-brennan/")
-        .then(function(r) { return r.json(); })
+      document.getElementById("status").textContent = "Checking...";
+      fetch("https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/")
+        .then(function(r) {
+          if (!r.ok) return {count: 0};
+          return r.json();
+        })
         .then(function(data) {
-          document.getElementById("count").textContent = data.count.toLocaleString();
+          var c = data.count || 0;
+          document.getElementById("count").textContent = c.toLocaleString();
+          document.getElementById("status").textContent = c === 0 ? "No scans yet" : (c === 1 ? "scan" : "scans");
+          var now = new Date();
+          document.getElementById("lastChecked").textContent = now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
         })
         .catch(function() {
-          document.getElementById("count").textContent = "—";
+          document.getElementById("count").textContent = "0";
+          document.getElementById("status").textContent = "No scans yet";
         });
     }
     loadCount();

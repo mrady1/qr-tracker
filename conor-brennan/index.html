@@ -8,10 +8,8 @@
   <p>Redirecting to <a href="https://www.cbre.com/people/conor-brennan#properties">Conor Brennan Listings</a>...</p>
   <script>
     var DEST = "https://www.cbre.com/people/conor-brennan#properties";
-    // Count the scan, then redirect
-    fetch("https://api.counterapi.dev/v1/mrady1-qr/conor-brennan/up", {mode:"cors"})
+    fetch("https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/up", {mode:"cors"})
       .finally(function() { window.location.replace(DEST); });
-    // Fallback redirect if fetch hangs
     setTimeout(function() { window.location.replace(DEST); }, 2000);
   </script>
 </body>
