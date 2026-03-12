@@ -10,12 +10,18 @@
   <script>
     var API = "https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/up";
     var DEST = "https://www.cbre.com/people/conor-brennan#properties";
+    var KEY = "qr_counted_cb-postcard";
+    var now = Date.now();
+    var last = parseInt(localStorage.getItem(KEY) || "0", 10);
 
-    try {
-      var x = new XMLHttpRequest();
-      x.open("GET", API, false);
-      x.send();
-    } catch(e) {}
+    if (now - last > 30000) {
+      localStorage.setItem(KEY, String(now));
+      try {
+        var x = new XMLHttpRequest();
+        x.open("GET", API, false);
+        x.send();
+      } catch(e) {}
+    }
 
     window.location.replace(DEST);
   </script>
