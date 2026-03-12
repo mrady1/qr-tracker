@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Scan Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+    .header { background: #003F2D; color: white; padding: 32px 24px; }
+    .header h1 { font-size: 22px; font-weight: 600; }
+    .header p { font-size: 14px; opacity: 0.8; margin-top: 4px; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px; }
+    .card { background: white; border-radius: 8px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-box { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
+    .stat-box .number { font-size: 36px; font-weight: 700; color: #003F2D; }
+    .stat-box .label { font-size: 13px; color: #666; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+    th { font-weight: 600; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .bar-cell { width: 40%; }
+    .bar { height: 20px; background: #003F2D; border-radius: 3px; min-width: 2px; }
+    .loading { text-align: center; padding: 40px; color: #999; }
+    .error { background: #fef2f2; color: #991b1b; padding: 16px; border-radius: 8px; }
+    .updated { font-size: 12px; color: #999; margin-top: 16px; text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>QR Code Scan Tracker</h1>
+    <p>Conor Brennan — Postcard Campaign</p>
+  </div>
+  <div class="container">
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="number" id="totalViews">—</div>
+        <div class="label">Total Scans</div>
+      </div>
+      <div class="stat-box">
+        <div class="number" id="totalUniques">—</div>
+        <div class="label">Unique Visitors</div>
+      </div>
+      <div class="stat-box">
+        <div class="number" id="daysTracked">—</div>
+        <div class="label">Days Tracked</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom: 16px;">Daily Scans</h3>
+      <div id="tableContainer"><p class="loading">Loading scan data...</p></div>
+      <p class="updated" id="lastUpdated"></p>
+    </div>
+  </div>
+  <script>
+    async function loadStats() {
+      try {
+        const resp = await fetch('data/traffic.json');
+        if (!resp.ok) throw new Error('No data yet — stats update daily.');
+        const data = await resp.json();
+
+        const views = data.views || [];
+        const uniques = data.uniques || [];
+        const totalViews = views.reduce((s, d) => s + d.count, 0);
+        const totalUniques = uniques.reduce((s, d) => s + d.uniques, 0);
+
+        document.getElementById('totalViews').textContent = totalViews.toLocaleString();
+        document.getElementById('totalUniques').textContent = totalUniques.toLocaleString();
+        document.getElementById('daysTracked').textContent = views.length;
+
+        if (data.updated) {
+          document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.updated).toLocaleString();
+        }
+
+        const maxCount = Math.max(...views.map(d => d.count), 1);
+        let html = '<table><thead><tr><th>Date</th><th>Scans</th><th>Unique</th><th class="bar-cell">Distribution</th></tr></thead><tbody>';
+        const merged = views.map((v, i) => ({
+          date: v.timestamp.split('T')[0],
+          count: v.count,
+          uniques: uniques[i] ? uniques[i].uniques : 0
+        })).reverse();
+
+        for (const row of merged) {
+          const pct = (row.count / maxCount) * 100;
+          html += '<tr>' +
+            '<td>' + row.date + '</td>' +
+            '<td><strong>' + row.count + '</strong></td>' +
+            '<td>' + row.uniques + '</td>' +
+            '<td class="bar-cell"><div class="bar" style="width:' + pct + '%"></div></td>' +
+            '</tr>';
+        }
+        html += '</tbody></table>';
+        document.getElementById('tableContainer').innerHTML = html;
+      } catch (e) {
+        document.getElementById('tableContainer').innerHTML =
+          '<div class="error">' + e.message + ' Check back after the first daily stats collection runs.</div>';
+      }
+    }
+    loadStats();
+  </script>
+</body>
+</html>
