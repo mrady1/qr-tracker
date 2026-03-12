@@ -11,12 +11,11 @@
     .header h1 { font-size: 22px; font-weight: 600; }
     .header p { font-size: 14px; opacity: 0.8; margin-top: 4px; }
     .container { max-width: 600px; margin: 0 auto; padding: 24px; }
-    .card { background: white; border-radius: 8px; padding: 32px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
-    .scan-label { font-size: 16px; color: #666; margin-bottom: 20px; }
-    .badge-container { margin: 24px 0; }
-    .badge-container img { height: 40px; }
-    .note { font-size: 13px; color: #999; margin-top: 20px; line-height: 1.5; }
-    .refresh-btn { background: #003F2D; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 16px; }
+    .card { background: white; border-radius: 8px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
+    .scan-label { font-size: 16px; color: #666; margin-bottom: 8px; }
+    .scan-count { font-size: 72px; font-weight: 700; color: #003F2D; line-height: 1; }
+    .note { font-size: 13px; color: #999; margin-top: 24px; line-height: 1.5; }
+    .refresh-btn { background: #003F2D; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 20px; }
     .refresh-btn:hover { background: #005a41; }
   </style>
 </head>
@@ -28,12 +27,23 @@
   <div class="container">
     <div class="card">
       <div class="scan-label">Total Scans</div>
-      <div class="badge-container">
-        <img id="badge" src="https://hits.sh/mrady1.github.io/qr-tracker/conor-brennan.svg?style=for-the-badge&label=total+scans&color=003F2D&labelColor=555" alt="total scan count">
-      </div>
-      <button class="refresh-btn" onclick="document.getElementById('badge').src = document.getElementById('badge').src.split('&_t=')[0] + '&_t=' + Date.now();">Refresh</button>
+      <div class="scan-count" id="count">...</div>
+      <button class="refresh-btn" onclick="loadCount()">Refresh</button>
       <p class="note">Count updates in real time each time someone scans the QR code on the postcard.</p>
     </div>
   </div>
+  <script>
+    function loadCount() {
+      fetch("https://api.counterapi.dev/v1/mrady1-qr/conor-brennan/")
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          document.getElementById("count").textContent = data.count.toLocaleString();
+        })
+        .catch(function() {
+          document.getElementById("count").textContent = "—";
+        });
+    }
+    loadCount();
+  </script>
 </body>
 </html>

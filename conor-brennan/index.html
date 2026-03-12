@@ -2,21 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="1;url=https://www.cbre.com/people/conor-brennan#properties">
   <title>Redirecting...</title>
 </head>
 <body>
-  <img src="https://hits.sh/mrady1.github.io/qr-tracker/conor-brennan.svg" style="display:none" alt="">
   <p>Redirecting to <a href="https://www.cbre.com/people/conor-brennan#properties">Conor Brennan Listings</a>...</p>
   <script>
-    var img = new Image();
-    img.src = "https://hits.sh/mrady1.github.io/qr-tracker/conor-brennan.svg?" + Date.now();
-    img.onload = img.onerror = function() {
-      window.location.replace("https://www.cbre.com/people/conor-brennan#properties");
-    };
-    setTimeout(function() {
-      window.location.replace("https://www.cbre.com/people/conor-brennan#properties");
-    }, 2000);
+    var DEST = "https://www.cbre.com/people/conor-brennan#properties";
+    // Count the scan, then redirect
+    fetch("https://api.counterapi.dev/v1/mrady1-qr/conor-brennan/up", {mode:"cors"})
+      .finally(function() { window.location.replace(DEST); });
+    // Fallback redirect if fetch hangs
+    setTimeout(function() { window.location.replace(DEST); }, 2000);
   </script>
 </body>
 </html>
