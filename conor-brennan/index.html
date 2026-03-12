@@ -2,32 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Redirecting...</title>
 </head>
 <body>
   <p>Redirecting to <a href="https://www.cbre.com/people/conor-brennan#properties">Conor Brennan Listings</a>...</p>
   <script>
+    var API = "https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/up";
     var DEST = "https://www.cbre.com/people/conor-brennan#properties";
-    var counted = false;
 
-    function go() {
-      if (!counted) { counted = true; window.location.replace(DEST); }
+    // Method 1: sendBeacon (survives page navigation)
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(API);
     }
 
-    // Count the scan using keepalive so the request survives navigation
+    // Method 2: fetch with keepalive
+    try { fetch(API, {keepalive: true}); } catch(e) {}
+
+    // Method 3: image pixel
+    (new Image()).src = API + "?t=" + Date.now();
+
+    // Method 4: XMLHttpRequest (sync, blocks until sent)
     try {
-      fetch("https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/up", {
-        mode: "cors",
-        keepalive: true
-      });
+      var x = new XMLHttpRequest();
+      x.open("GET", API + "?x=" + Date.now(), false);
+      x.send();
     } catch(e) {}
 
-    // Also fire a backup using an image beacon
-    var img = new Image();
-    img.src = "https://api.counterapi.dev/v1/mrady1-qr/cb-postcard/up?_=" + Date.now();
-
-    // Redirect after a short delay to ensure the request is sent
-    setTimeout(go, 800);
+    // Now redirect
+    window.location.replace(DEST);
   </script>
 </body>
 </html>
