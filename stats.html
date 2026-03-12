@@ -11,90 +11,105 @@
     .header h1 { font-size: 22px; font-weight: 600; }
     .header p { font-size: 14px; opacity: 0.8; margin-top: 4px; }
     .container { max-width: 800px; margin: 0 auto; padding: 24px; }
-    .card { background: white; border-radius: 8px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .stat-box { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
     .stat-box .number { font-size: 36px; font-weight: 700; color: #003F2D; }
     .stat-box .label { font-size: 13px; color: #666; margin-top: 4px; }
+    .card { background: white; border-radius: 8px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
     th { font-weight: 600; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
     .bar-cell { width: 40%; }
     .bar { height: 20px; background: #003F2D; border-radius: 3px; min-width: 2px; }
     .loading { text-align: center; padding: 40px; color: #999; }
-    .error { background: #fef2f2; color: #991b1b; padding: 16px; border-radius: 8px; }
-    .updated { font-size: 12px; color: #999; margin-top: 16px; text-align: right; }
+    .empty { text-align: center; padding: 40px; color: #999; font-size: 15px; }
+    .live-dot { display: inline-block; width: 8px; height: 8px; background: #22c55e; border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .refresh-btn { background: #003F2D; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 12px; }
+    .refresh-btn:hover { background: #005a41; }
+    .updated { font-size: 12px; color: #999; margin-top: 12px; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>QR Code Scan Tracker</h1>
+    <h1><span class="live-dot"></span>QR Code Scan Tracker</h1>
     <p>Conor Brennan — Postcard Campaign</p>
   </div>
   <div class="container">
     <div class="stat-grid">
       <div class="stat-box">
-        <div class="number" id="totalViews">—</div>
+        <div class="number" id="totalScans">—</div>
         <div class="label">Total Scans</div>
       </div>
       <div class="stat-box">
-        <div class="number" id="totalUniques">—</div>
-        <div class="label">Unique Visitors</div>
+        <div class="number" id="todayScans">—</div>
+        <div class="label">Today</div>
       </div>
       <div class="stat-box">
-        <div class="number" id="daysTracked">—</div>
-        <div class="label">Days Tracked</div>
+        <div class="number" id="daysActive">—</div>
+        <div class="label">Days Active</div>
       </div>
     </div>
     <div class="card">
-      <h3 style="margin-bottom: 16px;">Daily Scans</h3>
+      <h3 style="margin-bottom: 16px;">Daily Breakdown</h3>
       <div id="tableContainer"><p class="loading">Loading scan data...</p></div>
-      <p class="updated" id="lastUpdated"></p>
+      <button class="refresh-btn" onclick="loadStats()">Refresh</button>
+      <p class="updated" id="lastChecked"></p>
     </div>
   </div>
   <script>
+    const BLOB = "https://jsonblob.com/api/jsonBlob/019ce393-3a2d-7db8-8bf1-e61c48c1c6a7";
+
     async function loadStats() {
       try {
-        const resp = await fetch('data/traffic.json');
-        if (!resp.ok) throw new Error('No data yet — stats update daily.');
-        const data = await resp.json();
+        const res = await fetch(BLOB);
+        if (!res.ok) throw new Error("Could not load data");
+        const data = await res.json();
+        const scans = data.scans || [];
 
-        const views = data.views || [];
-        const totalViews = views.reduce((s, d) => s + d.count, 0);
-        const totalUniques = views.reduce((s, d) => s + (d.uniques || 0), 0);
+        document.getElementById('totalScans').textContent = scans.length.toLocaleString();
 
-        document.getElementById('totalViews').textContent = totalViews.toLocaleString();
-        document.getElementById('totalUniques').textContent = totalUniques.toLocaleString();
-        document.getElementById('daysTracked').textContent = views.filter(v => v.count > 0).length || views.length;
+        // Today's scans
+        const today = new Date().toISOString().split('T')[0];
+        const todayCount = scans.filter(s => s.ts && s.ts.startsWith(today)).length;
+        document.getElementById('todayScans').textContent = todayCount.toLocaleString();
 
-        if (data.updated) {
-          document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.updated).toLocaleString();
+        // Days active = unique days with scans
+        const uniqueDays = new Set(scans.map(s => s.ts ? s.ts.split('T')[0] : null).filter(Boolean));
+        document.getElementById('daysActive').textContent = uniqueDays.size || '0';
+
+        document.getElementById('lastChecked').textContent = 'Last checked: ' + new Date().toLocaleString();
+
+        if (scans.length === 0) {
+          document.getElementById('tableContainer').innerHTML = '<p class="empty">No scans yet. Data appears here in real time once the QR code is scanned.</p>';
+          return;
         }
 
-        const maxCount = Math.max(...views.map(d => d.count), 1);
-        let html = '<table><thead><tr><th>Date</th><th>Scans</th><th>Unique</th><th class="bar-cell">Distribution</th></tr></thead><tbody>';
-        const merged = views.map(v => ({
-          date: v.timestamp.split('T')[0],
-          count: v.count,
-          uniques: v.uniques || 0
-        })).reverse();
+        // Group scans by day
+        const byDay = {};
+        scans.forEach(s => {
+          if (!s.ts) return;
+          const day = s.ts.split('T')[0];
+          byDay[day] = (byDay[day] || 0) + 1;
+        });
 
-        for (const row of merged) {
-          const pct = (row.count / maxCount) * 100;
-          html += '<tr>' +
-            '<td>' + row.date + '</td>' +
-            '<td><strong>' + row.count + '</strong></td>' +
-            '<td>' + row.uniques + '</td>' +
-            '<td class="bar-cell"><div class="bar" style="width:' + pct + '%"></div></td>' +
-            '</tr>';
+        const days = Object.entries(byDay).sort((a, b) => b[0].localeCompare(a[0]));
+        const maxCount = Math.max(...days.map(d => d[1]), 1);
+
+        let html = '<table><thead><tr><th>Date</th><th>Scans</th><th class="bar-cell"></th></tr></thead><tbody>';
+        for (const [date, count] of days) {
+          const pct = (count / maxCount) * 100;
+          const label = date === today ? date + ' (today)' : date;
+          html += '<tr><td>' + label + '</td><td><strong>' + count + '</strong></td>' +
+            '<td class="bar-cell"><div class="bar" style="width:' + pct + '%"></div></td></tr>';
         }
         html += '</tbody></table>';
         document.getElementById('tableContainer').innerHTML = html;
       } catch (e) {
-        document.getElementById('tableContainer').innerHTML =
-          '<div class="error">' + e.message + ' Check back after the first daily stats collection runs.</div>';
+        document.getElementById('tableContainer').innerHTML = '<p class="empty">' + e.message + '</p>';
       }
     }
+
     loadStats();
   </script>
 </body>

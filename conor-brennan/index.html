@@ -2,11 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0;url=https://www.cbre.com/people/conor-brennan#properties">
   <title>Redirecting...</title>
 </head>
 <body>
   <p>Redirecting to <a href="https://www.cbre.com/people/conor-brennan#properties">Conor Brennan Listings</a>...</p>
-  <script>window.location.replace("https://www.cbre.com/people/conor-brennan#properties");</script>
+  <script>
+    const BLOB = "https://jsonblob.com/api/jsonBlob/019ce393-3a2d-7db8-8bf1-e61c48c1c6a7";
+    const DEST = "https://www.cbre.com/people/conor-brennan#properties";
+
+    (async () => {
+      try {
+        const res = await fetch(BLOB);
+        const data = await res.json();
+        data.scans.push({ ts: new Date().toISOString() });
+        data.total = data.scans.length;
+        await fetch(BLOB, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+      } catch (e) {
+        // tracking failed — still redirect
+      }
+      window.location.replace(DEST);
+    })();
+  </script>
 </body>
 </html>
