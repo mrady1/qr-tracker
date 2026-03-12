@@ -16,7 +16,7 @@ jobs:
 
       - name: Fetch GitHub Traffic Data
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
         run: |
           mkdir -p data
 
